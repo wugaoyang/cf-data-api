@@ -112,3 +112,8 @@ enabled = true
 # [[vectorize]]
 # binding = "MY_INDEX"
 # index_name = "my-index"
+
+[[d1_databases]]
+binding = "DB" # available in your Worker on env.DB
+database_name = "cf-db"
+database_id = "8034a2ca-22b8-49d8-a68d-3c41307f9463"
