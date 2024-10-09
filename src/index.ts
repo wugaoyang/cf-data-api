@@ -54,7 +54,10 @@ const sampleVectors: Array<VectorizeVector> = [
 ];
 export default {
 	async fetch(request, env): Promise<Response> {
+		console.log(request)
 		const { pathname } = new URL(request.url);
+		const requestBody = await request.json();
+		console.log(requestBody)
 
 		if (pathname === "/api/beverages") {
 			// If you did not use `DB` as your binding name, change it here
