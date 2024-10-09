@@ -103,7 +103,7 @@ export default {
 		}
 
 		// You only need to insert vectors into your index once
-		if (path.startsWith("/api/index/insert")) {
+		if (pathname.startsWith("/api/index/insert")) {
 			// Insert some sample vectors into your index
 			// In a real application, these vectors would be the output of a machine learning (ML) model,
 			// such as Workers AI, OpenAI, or Cohere.
