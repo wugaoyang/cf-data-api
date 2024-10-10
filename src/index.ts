@@ -21,7 +21,10 @@ export default {
 	async fetch(request, env): Promise<Response> {
 		console.log(request);
 		let response;
-		const { pathname } = new URL(request.url);
+		let { pathname } = new URL(request.url);
+		if(pathname.indexOf('?') > -1){
+			pathname = pathname.substring(0, pathname.indexOf('?'));
+		}
 		if (pathname === bestIpUrl) {
 			return await getBestIps(env);
 		}
