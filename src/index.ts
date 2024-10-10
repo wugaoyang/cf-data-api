@@ -11,6 +11,12 @@ export interface Env {
 
 let bestIpUrl = '/api/db/bestips';
 
+function setCORS(response) {
+	response.headers.set('Access-Control-Allow-Origin', '*');
+	response.headers.set('Access-Control-Allow-Methods', '*');
+	response.headers.set('Access-Control-Allow-Headers', '*');
+}
+
 export default {
 	async fetch(request, env): Promise<Response> {
 		console.log(request);
@@ -27,7 +33,7 @@ export default {
 		}
 		if (pathname === bestIpUrl + '/update') {
 			response = await updateBestIp(request, env);
-			response.headers.set("Access-Control-Allow-Origin", "*")
+			setCORS(response);
 			return response;
 		}
 

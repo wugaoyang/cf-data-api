@@ -8,6 +8,7 @@ export default class BestIp {
 
 }
 
+
 export  async function updateBestIp(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env) {
 	if (request.method !== 'POST') {
 		return new Response('不支持的请求方法：' + request.method);
@@ -21,11 +22,18 @@ export  async function updateBestIp(request: Request<unknown, IncomingRequestCfP
 		await env.DB.exec(
 			'DELETE FROM cf_best_ip WHERE  area =\'' + area + '\''
 		);
-		const requestBody = await request.text();
-		// console.log(requestBody);
-		if (requestBody) {
+		let bestIps = '';
+
+		if(request.headers.get("Content-Type").includes("application/json")){
+			const requestBody = await request.json();
+			bestIps = requestBody.bestIps;
+		}else{
+			bestIps = await request.text();
+		}
+		// console.log(bestIps);
+		if (bestIps) {
 			let sql = 'INSERT INTO cf_best_ip (ip, name, area, speed , status) VALUES';
-			requestBody.split('\n').forEach(value => {
+			bestIps.split('\n').forEach(value => {
 				console.log(value);
 				let split = value.split('\t');
 				if (split[0]) {
