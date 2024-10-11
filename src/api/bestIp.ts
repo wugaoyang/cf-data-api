@@ -17,14 +17,16 @@ export  async function updateBestIp(request: Request<unknown, IncomingRequestCfP
 		if (request.method === 'POST') {
 			const url = new URL(request.url);
 			let area = url.searchParams.get('area');
+			let deleteOld = url.searchParams.get('deleteOld');
 			if (!area) {
 				area = 'CF';
 			}
-			await env.DB.exec(
-				'DELETE FROM cf_best_ip WHERE  area =\'' + area + '\''
-			);
+			if(deleteOld && deleteOld === "1"){
+				await env.DB.exec(
+					'DELETE FROM cf_best_ip WHERE  area =\'' + area + '\''
+				);
+			}
 			let bestIps = '';
-
 			if(request.headers.get("Content-Type").includes("application/json")){
 				const requestBody = await request.json();
 				bestIps = requestBody.bestIps;
