@@ -40,7 +40,8 @@ export async function updateBestIp(request: Request<unknown, IncomingRequestCfPr
 					console.log(value);
 					let split = value.split('\t');
 					if (split[0]) {
-						let speed = split[5].trim();
+						let speed = split[5];
+						speed = speed ? speed.trim() : '';
 						sql += '( \'' + split[0] + '\',\'自选官方优选\',\'' + area + '\',\'' + speed + '\', 1 ),';
 					}
 
