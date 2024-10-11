@@ -1,5 +1,5 @@
 // @ts-ignore
-import BestIp, { updateBestIp, getBestIps } from './api/bestIp';
+import { updateBestIp, getBestIps, bestIpList } from './api/bestIp';
 import { queryIndex, sampleVectors } from './api/cf_index';
 
 export interface Env {
@@ -19,19 +19,22 @@ function setCORS(response) {
 
 export default {
 	async fetch(request, env): Promise<Response> {
-		console.log(request);
+		// console.log(request);
 		let response;
 		let { pathname } = new URL(request.url);
-		if(pathname.indexOf('?') > -1){
+		if (pathname.indexOf('?') > -1) {
 			pathname = pathname.substring(0, pathname.indexOf('?'));
 		}
-		if (pathname === bestIpUrl) {
-			return await getBestIps(env);
+		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
+			response = await getBestIps(env)
+			setCORS(response)
+			return response;
 		}
 
 		if (pathname === bestIpUrl + '/list') {
-			response = BestIp.list(env);
-			response.headers.set("Access-Control-Allow-Origin", "*")
+			response = await bestIpList(env);
+			// console.log("=============",response)
+			setCORS(response);
 			return response;
 		}
 		if (pathname === bestIpUrl + '/update') {

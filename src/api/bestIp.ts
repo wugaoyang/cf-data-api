@@ -1,15 +1,15 @@
 import { Env } from '../index';
 
-export default class BestIp {
-
-	static list(env: Env) {
-		return Response.json({'code':0});
-	}
-
+export async function bestIpList(env: Env) {
+	const { results } = await env.DB.prepare(
+		'SELECT * FROM cf_best_ip WHERE status = 1'
+	)
+		.all();
+	return Response.json(results);
 }
 
 
-export  async function updateBestIp(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env) {
+export async function updateBestIp(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env) {
 	try {
 		if (request.method !== 'POST') {
 			return new Response('不支持的请求方法：' + request.method);
@@ -21,16 +21,16 @@ export  async function updateBestIp(request: Request<unknown, IncomingRequestCfP
 			if (!area) {
 				area = 'CF';
 			}
-			if(deleteOld && deleteOld === "1"){
+			if (deleteOld && deleteOld === '1') {
 				await env.DB.exec(
 					'DELETE FROM cf_best_ip WHERE  area =\'' + area + '\''
 				);
 			}
 			let bestIps = '';
-			if(request.headers.get("Content-Type").includes("application/json")){
+			if (request.headers.get('Content-Type').includes('application/json')) {
 				const requestBody = await request.json();
 				bestIps = requestBody.bestIps;
-			}else{
+			} else {
 				bestIps = await request.text();
 			}
 			// console.log(bestIps);
@@ -40,7 +40,8 @@ export  async function updateBestIp(request: Request<unknown, IncomingRequestCfP
 					console.log(value);
 					let split = value.split('\t');
 					if (split[0]) {
-						sql += '( \'' + split[0] + '\',\'自选官方优选\',\'' + area + '\',\'' + split[5].trim() + 'MB/s\', 1 ),';
+						let speed = split[5].trim();
+						sql += '( \'' + split[0] + '\',\'自选官方优选\',\'' + area + '\',\'' + speed + '\', 1 ),';
 					}
 
 				});
@@ -51,8 +52,8 @@ export  async function updateBestIp(request: Request<unknown, IncomingRequestCfP
 			}
 			return new Response('update success');
 		}
-	} catch (error){
-			return new Response('update failed :' + error);
+	} catch (error) {
+		return new Response('update failed :' + error);
 	}
 	return new Response('update failed');
 }
@@ -65,7 +66,9 @@ export async function getBestIps(env: Env) {
 	let res = '';
 	if (results.length > 0) {
 		results.forEach(value => {
-			res += value.ip + '#' + value.area + value.name + ' ' + value.speed + '\n';
+			let speed = value.speed;
+			speed = speed ? speed + 'MB/s' : '';
+			res += value.ip + '#' + value.area + value.name + ' ' + speed + '\n';
 		});
 	}
 	return new Response(res);
