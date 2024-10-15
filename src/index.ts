@@ -1,6 +1,7 @@
 // @ts-ignore
-import { updateBestIp, getBestIps, bestIpList } from './api/bestIp';
-import { queryIndex, sampleVectors } from './api/cf_index';
+import CFIndex, { sampleVectors } from './api/CFIndex';
+import Result from './common/Result';
+import BestIp from './api/BestIp';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
@@ -11,40 +12,30 @@ export interface Env {
 
 let bestIpUrl = '/api/db/bestips';
 
-function setCORS(response) {
-	response.headers.set('Access-Control-Allow-Origin', '*');
-	response.headers.set('Access-Control-Allow-Methods', '*');
-	response.headers.set('Access-Control-Allow-Headers', '*');
-}
-
 export default {
 	async fetch(request, env): Promise<Response> {
 		// console.log(request);
 		let response;
-		let { pathname } = new URL(request.url);
-		if (pathname.indexOf('?') > -1) {
-			pathname = pathname.substring(0, pathname.indexOf('?'));
-		}
+		let url = new URL(request.url);
+		let pathname = url.pathname;
 		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
-			response = await getBestIps(env)
-			setCORS(response)
-			return response;
+			return await BestIp.getBestIps(env);
 		}
 
 		if (pathname === bestIpUrl + '/list') {
-			response = await bestIpList(env);
-			// console.log("=============",response)
-			setCORS(response);
-			return response;
+			return await BestIp.list(env);
+			;
 		}
 		if (pathname === bestIpUrl + '/update') {
-			response = await updateBestIp(request, env);
-			setCORS(response);
-			return response;
+			return await BestIp.update(request, env);
 		}
 
 		if (pathname === '/api/index') {
-			return await queryIndex(env);
+			return await CFIndex.queryIndex(env);
+		}
+
+		if (pathname === '/api/topIps') {
+			return BestIp.getTopIp();
 		}
 
 		// You only need to insert vectors into your index once

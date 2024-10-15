@@ -1,34 +1,35 @@
 
-export async function queryIndex(env: any) {
-	const queryVector: Array<number> = [
-		0.13, 0.25, 0.44, 0.53, 0.62, 0.41, 0.59, 0.68, 0.29, 0.82, 0.37, 0.5,
-		0.74, 0.46, 0.57, 0.64, 0.28, 0.61, 0.73, 0.35, 0.78, 0.58, 0.42, 0.32,
-		0.77, 0.65, 0.49, 0.54, 0.31, 0.29, 0.71, 0.57
-	]; // vector of dimensions 32
 
-	// Query your index and return the three (topK = 3) most similar vector
-	// IDs with their similarity score.
-	//
-	// By default, vector values are not returned, as in many cases the
-	// vector id and scores are sufficient to map the vector back to the
-	// original content it represents.
-	const matches = await env.VECTORIZE.query(queryVector, {
-		topK: 3,
-		returnValues: true,
-		returnMetadata: 'all'
-	});
+export default class CFIndex {
+	static async  queryIndex(env: any) {
+		const queryVector: Array<number> = [
+			0.13, 0.25, 0.44, 0.53, 0.62, 0.41, 0.59, 0.68, 0.29, 0.82, 0.37, 0.5,
+			0.74, 0.46, 0.57, 0.64, 0.28, 0.61, 0.73, 0.35, 0.78, 0.58, 0.42, 0.32,
+			0.77, 0.65, 0.49, 0.54, 0.31, 0.29, 0.71, 0.57
+		]; // vector of dimensions 32
 
-	return Response.json({
-		// This will return the closest vectors: the vectors are arranged according
-		// to their scores. Vectors that are more similar would show up near the top.
-		// In this example, Vector id #4 would turn out to be the most similar to the queried vector.
-		// You return the full set of matches so you can check the possible scores.
-		matches: matches
-	});
+		// Query your index and return the three (topK = 3) most similar vector
+		// IDs with their similarity score.
+		//
+		// By default, vector values are not returned, as in many cases the
+		// vector id and scores are sufficient to map the vector back to the
+		// original content it represents.
+		const matches = await env.VECTORIZE.query(queryVector, {
+			topK: 3,
+			returnValues: true,
+			returnMetadata: 'all'
+		});
+
+		return Response.json({
+			// This will return the closest vectors: the vectors are arranged according
+			// to their scores. Vectors that are more similar would show up near the top.
+			// In this example, Vector id #4 would turn out to be the most similar to the queried vector.
+			// You return the full set of matches so you can check the possible scores.
+			matches: matches
+		});
+	}
+
 }
-
-
-
 
 export const sampleVectors: Array<VectorizeVector> = [
 	{
