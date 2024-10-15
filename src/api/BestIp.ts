@@ -1,4 +1,4 @@
-import { Env } from '../index';
+import { Env } from '../_worker';
 import Result from '../common/Result';
 
 let basePath: string = '/api/db/bestIps';
