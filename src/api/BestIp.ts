@@ -1,5 +1,6 @@
 import { Env } from '../_worker';
 import Result from '../common/Result';
+import CommonUtil from '../Util';
 
 let basePath: string = '/api/db/bestIps';
 export default class BestIp{
@@ -87,14 +88,13 @@ export default class BestIp{
 			}
 			return res.text();
 		}).then(data => {
-			topIps = data.replaceAll(',', '#自动优选\n');
+			data.split(',').forEach(ip => {
+				let countryCode = CommonUtil.getCountryCode(ip);
+				topIps += `${ip}#${countryCode}自动优选`;
+			})
 		});
-		if (topIps) {
-			topIps += '#自动优选';
-		}
 		return Result.succeed(topIps);
 	}
-
 }
 
 
