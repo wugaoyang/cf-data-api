@@ -10,7 +10,7 @@ export interface Env {
 	VECTORIZE: Vectorize;
 }
 
-let bestIpUrl = '/api/db/bestips';
+let bestIpUrl = '/api/db/bestIps';
 
 export default {
 	async fetch(request, env): Promise<Response> {
