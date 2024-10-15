@@ -1,7 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "cf-data-api"
 main = "src/_worker.ts"
-compatibility_date = "2024-10-15"
+compatibility_date = "2024-10-10"
 compatibility_flags = ["nodejs_compat"]
 
 # Workers Logs
