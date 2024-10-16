@@ -6,7 +6,10 @@ export default class Result{
 	}
 
 	static failed(msg: string) {
-		return new Response(msg , {status : 500});
+		console.error(msg)
+		let response = new Response(msg , {status : 500});
+		setCORS(response)
+		return response;
 	}
 }
 

@@ -1,7 +1,7 @@
 // @ts-ignore
 import CFIndex, { sampleVectors } from './api/CFIndex';
-import Result from './common/Result';
 import BestIp from './api/BestIp';
+import Result from './common/Result';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
@@ -49,7 +49,7 @@ export default {
 			return Response.json(inserted);
 		}
 
-		return new Response(
+		return Result.succeed(
 			'Call /api/beverages to see everyone who works at Bs Beverages'
 		);
 	}
