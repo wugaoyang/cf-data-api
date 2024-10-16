@@ -21,6 +21,21 @@ function getSql(ipArr: string[], ips: string[], querySql: string) {
 	return querySql;
 }
 
+async function getData(sql: string, env: Env) {
+	const { results } = await env.DB.prepare(
+		sql
+	).all();
+	let res = '';
+	if (results.length > 0) {
+		results.forEach(value => {
+			let speed = value.speed;
+			speed = speed ? speed + 'MB/s' : '';
+			res += value.ip + '#' + value.area + ' ' + value.group + value.name + ' ' + speed + '\n';
+		});
+	}
+	return res;
+}
+
 export default class BestIp {
 	static async page(request: Request<unknown, IncomingRequestCfProperties>, env: Env) {
 		if (request.method === 'OPTIONS') {
@@ -78,7 +93,7 @@ export default class BestIp {
 			return Result.failed('ip已存在:' + JSON.stringify(bestIps));
 		}
 
-		let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, delay, speed , `status`, updatedTime) VALUES';
+		let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, delay, speed , `status`, `source`, updatedTime) VALUES';
 		// console.log(insertSql);
 		let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 		let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
@@ -93,7 +108,7 @@ export default class BestIp {
 				let speed = ipInfo.speed || 0;
 				let status = ipInfo.status || 0;
 				let area = countryCodeMap.get(ip) || '';
-				insertSql += '( \'' + ip + '\',\'自选官方优选\',\'CF\',\'' + area + '\',' + delay + ', \'' + speed + '\', ' + status + ' , \'' + updatedTime + '\')';
+				insertSql += '( \'' + ip + '\',\'自选官方优选\',\'CF\',\'' + area + '\',' + delay + ', \'' + speed + '\', ' + status + ', 1, \'' + updatedTime + '\')';
 				index++;
 			}
 		});
@@ -135,7 +150,7 @@ export default class BestIp {
 
 				let ips: string[] = await this.deleteExist(ipArr, env);
 
-				let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, speed , status, updatedTime) VALUES';
+				let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, speed , status, `source`, updatedTime) VALUES';
 				let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 				let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
 				ipArr.forEach(value => {
@@ -145,7 +160,7 @@ export default class BestIp {
 						let speed = split[5];
 						speed = speed ? speed.trim() : '';
 						let area = countryCodeMap.get(ip) || '';
-						insertSql += '( \'' + ip + '\',\'自选官方优选\',\'' + group + '\',\'' + area + '\',\'' + speed + '\', 1 , \'' + updatedTime + '\'),';
+						insertSql += '( \'' + ip + '\',\'自选官方优选\',\'' + group + '\',\'' + area + '\',\'' + speed + '\', 1, 1, \'' + updatedTime + '\'),';
 					}
 				});
 				insertSql = insertSql.substring(0, insertSql.lastIndexOf(','));
@@ -187,18 +202,10 @@ export default class BestIp {
 	}
 
 	static async getBestIps(env: Env) {
-		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status in(0, 1) order by  speed desc, delay desc limit 20'
-		)
-			.all();
-		let res = '';
-		if (results.length > 0) {
-			results.forEach(value => {
-				let speed = value.speed;
-				speed = speed ? speed + 'MB/s' : '';
-				res += value.ip + '#' + value.area + ' ' + value.group + value.name + ' ' + speed + '\n';
-			});
-		}
+		let sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 1 order by  speed desc, delay desc limit 10';
+		let res = await getData(sql, env);
+		sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 2 order by  speed desc, delay desc limit 10';
+		res += await getData(sql, env);
 		return Result.succeed(res);
 	}
 

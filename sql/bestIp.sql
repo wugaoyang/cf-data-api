@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS cf_best_ip (ip TEXT PRIMARY KEY,
 									   `group` TEXT,
 									   delay integer,
 									   speed integer,
-									   updatedTime TEXT,
-									   status integer
+									   `source` integer,
+									   status integer,
+									   updatedTime TEXT
                                       );
