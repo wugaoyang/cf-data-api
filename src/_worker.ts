@@ -21,15 +21,16 @@ export default {
 		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
 			return await BestIp.getBestIps(env);
 		}
-
 		if (pathname === bestIpUrl + '/list') {
 			return await BestIp.list(env);
 			;
 		}
+		if (pathname === bestIpUrl + '/add') {
+			return await BestIp.add(request, env);
+		}
 		if (pathname === bestIpUrl + '/update') {
 			return await BestIp.update(request, env);
 		}
-
 		if (pathname === '/api/index') {
 			return await CFIndex.queryIndex(env);
 		}
