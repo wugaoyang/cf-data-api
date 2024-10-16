@@ -21,9 +21,12 @@ export default {
 		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
 			return await BestIp.getBestIps(env);
 		}
+
+		if (pathname === bestIpUrl + '/page') {
+			return await BestIp.page(request, env);
+		}
 		if (pathname === bestIpUrl + '/list') {
 			return await BestIp.list(env);
-			;
 		}
 		if (pathname === bestIpUrl + '/add') {
 			return await BestIp.add(request, env);
@@ -31,10 +34,11 @@ export default {
 		if (pathname === bestIpUrl + '/update') {
 			return await BestIp.update(request, env);
 		}
+
+
 		if (pathname === '/api/index') {
 			return await CFIndex.queryIndex(env);
 		}
-
 		if (pathname === '/api/topIps') {
 			return BestIp.getTopIp();
 		}

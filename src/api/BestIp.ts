@@ -22,9 +22,41 @@ function getSql(ipArr: string[], ips: string[], querySql: string) {
 }
 
 export default class BestIp {
+	static async page(request: Request<unknown, IncomingRequestCfProperties>, env: Env) {
+		if (request.method === 'OPTIONS') {
+			return Result.succeed('');
+		}
+		if (request.method !== 'POST') {
+			return Result.failed('不支持的请求方法：' + request.method);
+		}
+		let queryData: {} = await request.json();
+		let pageVO: {} = queryData.pageVO;
+		let data: {} = queryData.data;
+		let pageIndex = pageVO.pageIndex || 1;
+		let pageSize = pageVO.pageSize || 10;
+		let start = (pageIndex - 1) * pageSize;
+		let condition = '';
+		if (data.name) {
+			condition += 'and name like \'%' + data.name + '%\'';
+		}
+		if (data.group) {
+			condition += 'and `group` like \'%' + data.group + '%\'';
+		}
+		if (data.status) {
+			condition += 'and `status` = ' + data.status;
+		}
+		let countSql = 'SELECT count(1) total FROM cf_best_ip where 1=1 ' + condition;
+		let result = await env.DB.prepare(countSql).all();
+		let total = result.results[0].total;
+		let querySql = 'SELECT * FROM cf_best_ip where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
+		const { results } = await env.DB.prepare(querySql).bind(start, pageSize).all();
+		let queryResult = { total: total, data: results };
+		return Result.succeed(JSON.stringify(queryResult));
+	}
+
 	static async list(env: Env) {
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status = 1'
+			'SELECT * FROM cf_best_ip WHERE status in(0, 1) order by updatedTime desc limit 20 '
 		)
 			.all();
 		return Result.succeed(JSON.stringify(results));
@@ -37,33 +69,34 @@ export default class BestIp {
 		if (request.method !== 'POST') {
 			return Result.failed('不支持的请求方法：' + request.method);
 		}
-		let bestIps = await request.text();
+		let bestIps: [] = await request.json();
 		if (!bestIps) {
 			return Result.failed('ip为空');
 		}
-		let ipArr: string[] = bestIps.split('\r\n');
-		let ips: string[] = await this.checkExist(ipArr, env);
-		ips.forEach(ip => {
-			ipArr = ipArr.filter(value1 => value1 !== ip);
-		});
-		if (ipArr.length <= 0) {
-			return Result.failed('ip已存在');
+		let ips: string[] = await this.checkExist(bestIps, env);
+		if (bestIps.length <= 0) {
+			return Result.failed('ip已存在:' + JSON.stringify(bestIps));
 		}
 
-		let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, speed , status, updatedTime) VALUES';
+		let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, delay, speed , `status`, updatedTime) VALUES';
+		// console.log(insertSql);
 		let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 		let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
-		ipArr.forEach(value => {
-			let split = value.split('\t');
-			let ip = split[0];
+		let index = 0;
+		bestIps.forEach(ipInfo => {
+			let ip = ipInfo.ip || '';
 			if (ip) {
-				let speed = split[5];
-				speed = speed ? speed.trim() : '';
+				if (index > 0) {
+					insertSql += ',';
+				}
+				let delay = ipInfo.delay || 0;
+				let speed = ipInfo.speed || 0;
+				let status = ipInfo.status || 0;
 				let area = countryCodeMap.get(ip) || '';
-				insertSql += '( \'' + ip + '\',\'自选官方优选\',\'CF\',\'' + area + '\',\'' + speed + '\', 0 , \'' + updatedTime + '\'),';
+				insertSql += '( \'' + ip + '\',\'自选官方优选\',\'CF\',\'' + area + '\',' + delay + ', \'' + speed + '\', ' + status + ' , \'' + updatedTime + '\')';
+				index++;
 			}
 		});
-		insertSql = insertSql.substring(0, insertSql.lastIndexOf(','));
 		// console.log(insertSql);
 		await env.DB.exec(insertSql);
 		return Result.succeed('添加成功');
@@ -155,7 +188,7 @@ export default class BestIp {
 
 	static async getBestIps(env: Env) {
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status = 1'
+			'SELECT * FROM cf_best_ip WHERE status in(0, 1) order by  speed desc, delay desc limit 20'
 		)
 			.all();
 		let res = '';
@@ -196,8 +229,16 @@ export default class BestIp {
 	 * @param env
 	 * @private
 	 */
-	private static async checkExist(ipArr: string[], env: Env) {
+	private static async checkExist(bestIps: {}[], env: Env) {
 		let ips: string[] = [];
+		let ipArr: string[] = [];
+		let ipMap: Map<string, any> = new Map();
+		bestIps.forEach(value => {
+			let ip = value.ip || '';
+			ipArr.push(ip);
+			ipMap.set(ip, value);
+			ips.push(ip);
+		});
 		if (ipArr.length <= 0) {
 			return ips;
 		}
@@ -208,8 +249,9 @@ export default class BestIp {
 		if (results.length > 0) {
 			results.forEach(value => {
 				let ip: string = <string>value.ip;
-				ips.push(ip);
+				ipMap.get(ip).status = value.status;
 			});
+			await this.deleteExist(ips, env);
 		}
 		return ips;
 	}
