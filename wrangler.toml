@@ -4,6 +4,9 @@ main = "src/_worker.ts"
 compatibility_date = "2024-10-10"
 compatibility_flags = ["nodejs_compat"]
 
+account_id="28b434e65f3827c8c823136bcd3be492"
+workers_dev = true
+
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 # Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
@@ -97,9 +100,9 @@ enabled = true
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#r2-buckets
-# [[r2_buckets]]
-# binding = "MY_BUCKET"
-# bucket_name = "my-bucket"
+[[r2_buckets]]
+binding = "GEO_BUCKET"
+bucket_name = "geo-lite"
 
 # Bind another Worker service. Use this binding to call another Worker without network overhead.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings

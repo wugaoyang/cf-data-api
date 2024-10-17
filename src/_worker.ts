@@ -2,18 +2,20 @@
 import CFIndex, { sampleVectors } from './api/CFIndex';
 import BestIp from './api/BestIp';
 import Result from './common/Result';
+import IpLocationFinder from './api/IpLocationFinder';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
 	// replace "DB" with the variable name you defined.
 	DB: D1Database;
+	GEO_BUCKET: R2Bucket;
 	VECTORIZE: Vectorize;
 }
 
 let bestIpUrl = '/api/db/bestIps';
 
 export default {
-	async fetch(request, env): Promise<Response> {
+	async fetch(request: Request, env: Env): Promise<Response> {
 		// console.log(request);
 		let response;
 		let url = new URL(request.url);
@@ -54,8 +56,12 @@ export default {
 			return Response.json(inserted);
 		}
 
+		if (pathname === '/ip') {
+			return await IpLocationFinder.find(request, env);
+		}
+
 		return Result.succeed(
-			'Call /api/beverages to see everyone who works at Bs Beverages'
+			'data api'
 		);
 	}
 } satisfies ExportedHandler<Env>;

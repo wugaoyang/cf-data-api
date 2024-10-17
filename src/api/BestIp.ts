@@ -30,14 +30,20 @@ async function getData(sql: string, env: Env) {
 		results.forEach(value => {
 			let speed = value.speed;
 			speed = speed ? speed + 'MB/s' : '';
-			res += value.ip + '#' + value.area + ' ' + value.group + value.name + ' ' + speed + '\n';
+			let countryCode = value.countryCode ? value.countryCode + ' ' : '';
+			res += value.ip + '#' + countryCode + value.group + value.name + ' ' + speed + '\n';
 		});
 	}
 	return res;
 }
 
 export default class BestIp {
-	static async page(request: Request<unknown, IncomingRequestCfProperties>, env: Env) {
+	/**
+	 * 分页查询
+	 * @param request
+	 * @param env
+	 */
+	static async page(request: Request, env: Env) {
 		if (request.method === 'OPTIONS') {
 			return Result.succeed('');
 		}
@@ -60,6 +66,16 @@ export default class BestIp {
 		if (data.status) {
 			condition += 'and `status` = ' + data.status;
 		}
+		if (data.countryCode) {
+			condition += 'and `countryCode` = \'' + data.countryCode + '\'';
+		}
+		if (data.reachable) {
+			if (data.reachable == 1) {
+				condition += 'and `delay` > -1';
+			} else {
+				condition += 'and `delay` = -1';
+			}
+		}
 		let countSql = 'SELECT count(1) total FROM cf_best_ip where 1=1 ' + condition;
 		let result = await env.DB.prepare(countSql).all();
 		let total = result.results[0].total;
@@ -69,6 +85,10 @@ export default class BestIp {
 		return Result.succeed(JSON.stringify(queryResult));
 	}
 
+	/**
+	 * 查询列表
+	 * @param env
+	 */
 	static async list(env: Env) {
 		const { results } = await env.DB.prepare(
 			'SELECT * FROM cf_best_ip WHERE status in(0, 1) order by updatedTime desc limit 20 '
@@ -77,7 +97,12 @@ export default class BestIp {
 		return Result.succeed(JSON.stringify(results));
 	}
 
-	static async add(request: Request<unknown, IncomingRequestCfProperties>, env: Env) {
+	/**
+	 * 添加ip信息
+	 * @param request
+	 * @param env
+	 */
+	static async add(request: Request, env: Env) {
 		if (request.method === 'OPTIONS') {
 			return Result.succeed('');
 		}
@@ -93,22 +118,55 @@ export default class BestIp {
 			return Result.failed('ip已存在:' + JSON.stringify(bestIps));
 		}
 
-		let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, delay, speed , `status`, `source`, updatedTime) VALUES';
+		let insertSql = 'INSERT INTO cf_best_ip (ip,' +
+			'cityNameCN,' +
+			'cityNameEN,' +
+			'continentCode,' +
+			'countryCode,' +
+			'countryNameEN,' +
+			'countryNameCN,' +
+			'latitude,' +
+			'longitude, name,`group`, delay, speed , `status`, `source`, updatedTime) VALUES';
 		// console.log(insertSql);
 		let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
-		let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
+		let updatedTime = moment(new Date(new Date().getTime() + 8 * 60 * 60 * 100)).format('YYYY-MM-DD HH:mm:ss');
 		let index = 0;
 		bestIps.forEach(ipInfo => {
 			let ip = ipInfo.ip || '';
 			if (ip) {
+				updatedTime = ipInfo.updatedTime || updatedTime;
 				if (index > 0) {
 					insertSql += ',';
 				}
+				let cityNameCn = ipInfo.cityNameCn || '';
+				let cityNameEn = ipInfo.cityNameEn || '';
+				let continentCode = ipInfo.continentCode || '';
+				let countryCode = ipInfo.countryCode || '';
+				let countryNameEN = ipInfo.countryNameEN || '';
+				let countryNameCN = ipInfo.countryNameCN || '';
+				let latitude = ipInfo.latitude || '';
+				let longitude = ipInfo.longitude || '';
 				let delay = ipInfo.delay || 0;
 				let speed = ipInfo.speed || 0;
 				let status = ipInfo.status || 0;
-				let area = countryCodeMap.get(ip) || '';
-				insertSql += '( \'' + ip + '\',\'自选官方优选\',\'CF\',\'' + area + '\',' + delay + ', \'' + speed + '\', ' + status + ', 1, \'' + updatedTime + '\')';
+				let name = '自选官方优选';
+				let group = 'CF';
+				insertSql += '( \'' + ip + '\',' +
+					'\'' + cityNameCn + '\',' +
+					'\'' + cityNameEn + '\',' +
+					'\'' + continentCode + '\',' +
+					'\'' + countryCode + '\',' +
+					'\'' + countryNameEN + '\',' +
+					'\'' + countryNameCN + '\',' +
+					'\'' + latitude + '\',' +
+					'\'' + longitude + '\',' +
+					'\'' + name + '\',' +
+					'\'' + group + '\',' +
+					+delay + ', ' +
+					'\'' + speed + '\', ' +
+					status + ', ' +
+					'1, ' +
+					'\'' + updatedTime + '\')';
 				index++;
 			}
 		});
@@ -117,7 +175,7 @@ export default class BestIp {
 		return Result.succeed('添加成功');
 	}
 
-	static async update(request: Request<unknown, IncomingRequestCfProperties>, env: Env) {
+	static async update(request: Request, env: Env) {
 		try {
 			if (request.method === 'OPTIONS') {
 				return Result.succeed('');
@@ -150,7 +208,7 @@ export default class BestIp {
 
 				let ips: string[] = await this.deleteExist(ipArr, env);
 
-				let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`, area, speed , status, `source`, updatedTime) VALUES';
+				let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`,  speed , status, `source`, updatedTime) VALUES';
 				let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 				let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
 				ipArr.forEach(value => {
@@ -159,8 +217,7 @@ export default class BestIp {
 					if (ip) {
 						let speed = split[5];
 						speed = speed ? speed.trim() : '';
-						let area = countryCodeMap.get(ip) || '';
-						insertSql += '( \'' + ip + '\',\'自选官方优选\',\'' + group + '\',\'' + area + '\',\'' + speed + '\', 1, 1, \'' + updatedTime + '\'),';
+						insertSql += '( \'' + ip + '\',\'自选官方优选\',\'' + group + '\',\'' + speed + '\', 1, 1, \'' + updatedTime + '\'),';
 					}
 				});
 				insertSql = insertSql.substring(0, insertSql.lastIndexOf(','));
@@ -202,11 +259,36 @@ export default class BestIp {
 	}
 
 	static async getBestIps(env: Env) {
-		let sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 1 order by  speed desc, delay desc limit 10';
-		let res = await getData(sql, env);
-		sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 2 order by  speed desc, delay desc limit 10';
-		res += await getData(sql, env);
-		return Result.succeed(res);
+		// let sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 1 order by  speed desc, delay desc limit 10';
+		// let res = await getData(sql, env);
+		// sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 2 order by  speed desc, delay desc limit 10';
+		// res += await getData(sql, env);
+
+		let sql2 = `WITH RankedRecords AS (SELECT ip,
+																							name,
+																							countryCode,
+																							"group",
+																							delay,
+																							speed,
+																							source,
+																							status,
+																							updatedTime,
+																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY  speed desc, delay desc) AS rn
+																			 FROM cf_best_ip
+																			 where status = 1)
+								SELECT ip,
+											 name,
+											 countryCode,
+											 "group",
+											 delay,
+											 speed,
+											 source,
+											 status,
+											 updatedTime
+								FROM RankedRecords
+								WHERE rn <= 10;
+		`;
+		return Result.succeed(await getData(sql2, env));
 	}
 
 	static async getTopIp() {
@@ -256,7 +338,14 @@ export default class BestIp {
 		if (results.length > 0) {
 			results.forEach(value => {
 				let ip: string = <string>value.ip;
-				ipMap.get(ip).status = value.status;
+				let newVar = ipMap.get(ip);
+				if (!newVar.status) {
+					newVar.status = value.status;
+				}
+				if(!newVar.speed){
+					newVar.speed = value.speed;
+				}
+
 			});
 			await this.deleteExist(ips, env);
 		}
