@@ -71,9 +71,9 @@ export default class BestIp {
 		}
 		if (data.reachable) {
 			if (data.reachable == 1) {
-				condition += 'and `delay` > -1';
+				condition += 'and `delay` > 0';
 			} else {
-				condition += 'and `delay` = -1';
+				condition += 'and `delay` <= 0 ';
 			}
 		}
 		let countSql = 'SELECT count(1) total FROM cf_best_ip where 1=1 ' + condition;
@@ -109,14 +109,16 @@ export default class BestIp {
 		if (request.method !== 'POST') {
 			return Result.failed('不支持的请求方法：' + request.method);
 		}
-		let bestIps: [] = await request.json();
-		if (!bestIps) {
+		let IpInfos: [] = await request.json();
+		if (!IpInfos) {
 			return Result.failed('ip为空');
 		}
-		let ips: string[] = await this.checkExist(bestIps, env);
-		if (bestIps.length <= 0) {
-			return Result.failed('ip已存在:' + JSON.stringify(bestIps));
+		let ips: string[] = await this.checkExist(IpInfos, env);
+		if (IpInfos.length <= 0) {
+			return Result.failed('ip已存在:' + JSON.stringify(IpInfos));
 		}
+		// let noCountryCodes = IpInfos.filter(value => !value.countryCode);
+
 
 		let insertSql = 'INSERT INTO cf_best_ip (ip,' +
 			'cityNameCN,' +
@@ -128,10 +130,10 @@ export default class BestIp {
 			'latitude,' +
 			'longitude, name,`group`, delay, speed , `status`, `source`, updatedTime) VALUES';
 		// console.log(insertSql);
-		let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
+		// let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 		let updatedTime = moment(new Date(new Date().getTime() + 8 * 60 * 60 * 100)).format('YYYY-MM-DD HH:mm:ss');
 		let index = 0;
-		bestIps.forEach(ipInfo => {
+		IpInfos.forEach(ipInfo => {
 			let ip = ipInfo.ip || '';
 			if (ip) {
 				updatedTime = ipInfo.updatedTime || updatedTime;
@@ -273,7 +275,7 @@ export default class BestIp {
 																							source,
 																							status,
 																							updatedTime,
-																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY  speed desc, delay desc) AS rn
+																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY  speed desc, delay) AS rn
 																			 FROM cf_best_ip
 																			 where status = 1)
 								SELECT ip,
@@ -342,7 +344,7 @@ export default class BestIp {
 				if (!newVar.status) {
 					newVar.status = value.status;
 				}
-				if(!newVar.speed){
+				if (!newVar.speed) {
 					newVar.speed = value.speed;
 				}
 
