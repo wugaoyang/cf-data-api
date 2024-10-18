@@ -29,7 +29,7 @@ async function getData(sql: string, env: Env) {
 	if (results.length > 0) {
 		results.forEach(value => {
 			let speed = value.speed;
-			speed = speed ? speed + 'MB/s' : '';
+			speed = speed ? speed.toFixed(2) + 'MB/s' : '';
 			let countryCode = value.countryCode ? value.countryCode + ' ' : '';
 			res += value.ip + '#' + countryCode + value.group + value.name + ' ' + speed + '\n';
 		});
@@ -275,7 +275,7 @@ export default class BestIp {
 																							source,
 																							status,
 																							updatedTime,
-																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY  speed desc, delay) AS rn
+																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY speed DESC, delay ASC) AS rn
 																			 FROM cf_best_ip
 																			 where status = 1)
 								SELECT ip,
