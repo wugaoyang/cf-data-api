@@ -1,8 +1,7 @@
 // @ts-ignore
-import CFIndex, { sampleVectors } from './api/CFIndex';
-import BestIp from './api/BestIp';
+import CFIndexApi, { sampleVectors } from './api/CFIndexApi';
+import IpInfoApi from './api/IpInfoApi';
 import Result from './common/Result';
-import IpLocationFinder from './api/IpLocationFinder';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
@@ -17,32 +16,34 @@ let bestIpUrl = '/api/db/bestIps';
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		// console.log(request);
-		let response;
 		let url = new URL(request.url);
 		let pathname = url.pathname;
 		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
-			return await BestIp.getBestIps(env);
+			return await IpInfoApi.getBestIps(request, env);
 		}
 
 		if (pathname === bestIpUrl + '/page') {
-			return await BestIp.page(request, env);
+			return await IpInfoApi.page(request, env);
 		}
 		if (pathname === bestIpUrl + '/list') {
-			return await BestIp.list(env);
+			return await IpInfoApi.list(env);
+		}
+		if (pathname === bestIpUrl + '/getAllReachable') {
+			return await IpInfoApi.getAllReachable(env);
 		}
 		if (pathname === bestIpUrl + '/add') {
-			return await BestIp.add(request, env);
+			return await IpInfoApi.add(request, env);
 		}
 		if (pathname === bestIpUrl + '/update') {
-			return await BestIp.update(request, env);
+			return await IpInfoApi.update(request, env);
 		}
 
 
 		if (pathname === '/api/index') {
-			return await CFIndex.queryIndex(env);
+			return await CFIndexApi.queryIndex(env);
 		}
 		if (pathname === '/api/topIps') {
-			return BestIp.getTopIp();
+			return IpInfoApi.getTopIp();
 		}
 
 		// You only need to insert vectors into your index once
@@ -54,10 +55,6 @@ export default {
 
 			// Return the mutation identifier for this insert operation
 			return Response.json(inserted);
-		}
-
-		if (pathname === '/ip') {
-			return await IpLocationFinder.find(request, env);
 		}
 
 		return Result.succeed(

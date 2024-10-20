@@ -2,6 +2,9 @@ import { Env } from '../_worker';
 import Result from '../common/Result';
 import CommonUtil from '../common/CommonUtil';
 import moment from 'moment';
+import QueryData, { PageVO } from '../model/QueryData';
+import IpInfo from '../model/IpInfo';
+import { an } from 'vitest/dist/chunks/reporters.C_zwCd4j';
 
 function getSql(ipArr: string[], ips: string[], querySql: string) {
 	let index = 0;
@@ -21,23 +24,8 @@ function getSql(ipArr: string[], ips: string[], querySql: string) {
 	return querySql;
 }
 
-async function getData(sql: string, env: Env) {
-	const { results } = await env.DB.prepare(
-		sql
-	).all();
-	let res = '';
-	if (results.length > 0) {
-		results.forEach(value => {
-			let speed = value.speed;
-			speed = speed ? speed.toFixed(2) + 'MB/s' : '';
-			let countryCode = value.countryCode ? value.countryCode + ' ' : '';
-			res += value.ip + '#' + countryCode + value.group + value.name + ' ' + speed + '\n';
-		});
-	}
-	return res;
-}
 
-export default class BestIp {
+export default class IpInfoApi {
 	/**
 	 * 分页查询
 	 * @param request
@@ -50,39 +38,69 @@ export default class BestIp {
 		if (request.method !== 'POST') {
 			return Result.failed('不支持的请求方法：' + request.method);
 		}
-		let queryData: {} = await request.json();
-		let pageVO: {} = queryData.pageVO;
-		let data: {} = queryData.data;
+		let queryData: { data: QueryData, pageVO: PageVO } = await request.json();
+		let pageVO: PageVO = queryData.pageVO;
+		let data: QueryData = queryData.data;
 		let pageIndex = pageVO.pageIndex || 1;
 		let pageSize = pageVO.pageSize || 10;
 		let start = (pageIndex - 1) * pageSize;
 		let condition = '';
+		if (data.ip) {
+			condition += ' and ip like \'%' + data.ip + '%\'';
+		}
 		if (data.name) {
-			condition += 'and name like \'%' + data.name + '%\'';
+			condition += ' and name like \'%' + data.name + '%\'';
+		}
+		if (data.countryNameCN) {
+			condition += ' and countryNameCN like \'%' + data.countryNameCN.trim() + '%\'';
 		}
 		if (data.group) {
-			condition += 'and `group` like \'%' + data.group + '%\'';
+			condition += ' and `group` like \'%' + data.group + '%\'';
 		}
 		if (data.status) {
-			condition += 'and `status` = ' + data.status;
+			condition += ' and `status` = ' + data.status;
+		}
+		if (data.speed1) {
+			condition += ' and `speed` >= ' + data.speed1;
+		}
+		if (data.speed2) {
+			condition += ' and `speed` <= ' + data.speed2;
+		}
+		if (data.delay1) {
+			condition += ' and `delay` >= ' + data.delay1;
+		}
+		if (data.delay2) {
+			condition += ' and `delay` <= ' + data.delay2;
 		}
 		if (data.countryCode) {
-			condition += 'and `countryCode` = \'' + data.countryCode + '\'';
+			condition += ' and `countryCode` = \'' + data.countryCode + '\'';
 		}
 		if (data.reachable) {
 			if (data.reachable == 1) {
-				condition += 'and `delay` > 0';
+				condition += ' and `delay` > 0';
 			} else {
-				condition += 'and `delay` <= 0 ';
+				condition += ' and `delay` <= 0 ';
 			}
 		}
 		let countSql = 'SELECT count(1) total FROM cf_best_ip where 1=1 ' + condition;
+		// console.log(countSql);
 		let result = await env.DB.prepare(countSql).all();
 		let total = result.results[0].total;
 		let querySql = 'SELECT * FROM cf_best_ip where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
 		const { results } = await env.DB.prepare(querySql).bind(start, pageSize).all();
 		let queryResult = { total: total, data: results };
 		return Result.succeed(JSON.stringify(queryResult));
+	}
+
+	/**
+	 * 查询列表
+	 * @param env
+	 */
+	static async getAllReachable(env: Env) {
+		const { results } = await env.DB.prepare(
+			'SELECT * FROM cf_best_ip WHERE status in(1) and delay > 0'
+		).all();
+		return Result.succeed(JSON.stringify(results));
 	}
 
 	/**
@@ -109,10 +127,14 @@ export default class BestIp {
 		if (request.method !== 'POST') {
 			return Result.failed('不支持的请求方法：' + request.method);
 		}
-		let IpInfos: [] = await request.json();
+		let IpInfos: IpInfo[] = await request.json();
 		if (!IpInfos) {
 			return Result.failed('ip为空');
 		}
+		return await this.doAdd(IpInfos, env);
+	}
+
+	static async doAdd(IpInfos: IpInfo[], env: Env) {
 		let ips: string[] = await this.checkExist(IpInfos, env);
 		if (IpInfos.length <= 0) {
 			return Result.failed('ip已存在:' + JSON.stringify(IpInfos));
@@ -260,12 +282,7 @@ export default class BestIp {
 		return ips;
 	}
 
-	static async getBestIps(env: Env) {
-		// let sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 1 order by  speed desc, delay desc limit 10';
-		// let res = await getData(sql, env);
-		// sql = 'SELECT * FROM cf_best_ip WHERE status in(0, 1) and `source` = 2 order by  speed desc, delay desc limit 10';
-		// res += await getData(sql, env);
-
+	static async getBestIps(request: Request, env: Env) {
 		let sql2 = `WITH RankedRecords AS (SELECT ip,
 																							name,
 																							countryCode,
@@ -290,7 +307,8 @@ export default class BestIp {
 								FROM RankedRecords
 								WHERE rn <= 10;
 		`;
-		return Result.succeed(await getData(sql2, env));
+		let data = await this.getIpInfoVO(sql2, request, env);
+		return Result.succeed(data);
 	}
 
 	static async getTopIp() {
@@ -320,7 +338,7 @@ export default class BestIp {
 	 * @param env
 	 * @private
 	 */
-	private static async checkExist(bestIps: {}[], env: Env) {
+	private static async checkExist(bestIps: IpInfo[], env: Env) {
 		let ips: string[] = [];
 		let ipArr: string[] = [];
 		let ipMap: Map<string, any> = new Map();
@@ -353,6 +371,45 @@ export default class BestIp {
 		}
 		return ips;
 	}
-}
 
+	static async getIpInfoVO(sql: string, request: Request, env: Env) {
+		const { results } = await env.DB.prepare(
+			sql
+		).all();
+		let res = '';
+		if (results.length > 0) {
+			let url: URL = new URL(request.url);
+			let showSpeed: boolean = url.searchParams.has('showSpeed');
+			let showGroup: boolean = url.searchParams.has('showGroup');
+
+			let ipInfos: IpInfo[] = [];
+			let ips: [] = [];
+			results.forEach(value => {
+				let speed: unknown = value.speed;
+				// @ts-ignore
+				speed = showSpeed && speed ? speed.toFixed(2) + 'MB/s' : '';
+				let countryCode = value.countryCode;
+				let ip = value.ip;
+				if (countryCode) {
+					let group = showGroup ? value.group : '';
+					res += ip + '#' + countryCode + ' ' + group + value.name + ' ' + speed + '\n';
+				} else {
+					// @ts-ignore
+					ipInfos.push(value);
+					// @ts-ignore
+					ips.push(ip);
+				}
+			});
+			if (ipInfos.length > 0) {
+				let countryCodeBatch: Map<string, any> = await CommonUtil.getCountryCodeBatch(ips);
+				ipInfos.forEach(value => {
+					value.countryCode = countryCodeBatch.get(value.ip);
+				});
+				await this.doAdd(ipInfos, env);
+			}
+		}
+		return res;
+	}
+
+}
 
