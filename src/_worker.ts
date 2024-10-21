@@ -26,7 +26,7 @@ export default {
 			return await IpInfoApi.page(request, env);
 		}
 		if (pathname === bestIpUrl + '/list') {
-			return await IpInfoApi.list(env);
+			return await IpInfoApi.list(request, env);
 		}
 		if (pathname === bestIpUrl + '/clear') {
 			return await IpInfoApi.clear(env);

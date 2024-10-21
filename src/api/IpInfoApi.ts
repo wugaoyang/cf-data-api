@@ -106,23 +106,40 @@ export default class IpInfoApi {
 	}
 
 	/**
+	 * 删除不好的ip
+	 * @param env
+	 */
+	static async deleteDisableIp(env: Env) {
+		await env.DB.exec(
+			'delete FROM cf_best_ip WHERE status in(0) or delay <= 0 or speed < 10'
+		);
+		return Result.succeed('删除成功');
+	}
+
+	/**
 	 * 查询列表
 	 * @param env
 	 */
-	static async list(env: Env) {
+	static async list(request: Request, env: Env) {
+		let url = new URL(request.url);
+		let limit = url.searchParams.get('limit');
+		let limitCondition = '';
+		if (limit) {
+			limitCondition = 'limit ' + limit;
+		}
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status in(0, 1) order by updatedTime desc limit 20 '
-		)
-			.all();
+			'SELECT * FROM cf_best_ip order by updatedTime desc ' + limitCondition
+		).all();
 		return Result.succeed(JSON.stringify(results));
 	}
 
-	static async clear(env: Env){
+	static async clear(env: Env) {
 		await env.DB.exec(
 			'DELETE FROM cf_best_ip '
-		)
-		return Result.succeed("删除成功")
+		);
+		return Result.succeed('删除成功');
 	}
+
 	/**
 	 * 添加ip信息
 	 * @param request
