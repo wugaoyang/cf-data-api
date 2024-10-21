@@ -415,8 +415,8 @@ export default class IpInfoApi {
 				speed = showSpeed && speed ? speed.toFixed(2) + 'MB/s' : '';
 				let countryCode = value.countryCode;
 				let ip = value.ip;
+				let group = showGroup ? value.group : '';
 				if (countryCode) {
-					let group = showGroup ? value.group : '';
 					res += ip + '#' + countryCode + ' ' + group + value.name + ' ' + speed + '\n';
 				} else {
 					// @ts-ignore
@@ -426,11 +426,16 @@ export default class IpInfoApi {
 				}
 			});
 			if (ipInfos.length > 0) {
-				let countryCodeBatch: Map<string, any> = await CommonUtil.getCountryCodeBatch(ips);
+				// let countryCodeBatch: Map<string, any> = await CommonUtil.getCountryCodeBatch(ips);
 				ipInfos.forEach(value => {
-					value.countryCode = countryCodeBatch.get(value.ip);
+					// value.countryCode = countryCodeBatch.get(value.ip);
+					// @ts-ignore
+					let group = showGroup ? value.group : '';
+					let speed: unknown = value.speed;
+					speed = showSpeed && speed ? speed.toFixed(2) + 'MB/s' : '';
+					res += value.ip + '#' + value.countryCode + ' ' + group + value.name + ' ' + speed + '\n';
 				});
-				await this.doAdd(ipInfos, env);
+				// await this.doAdd(ipInfos, env);
 			}
 		}
 		return res;

@@ -28,6 +28,9 @@ export default {
 		if (pathname === bestIpUrl + '/list') {
 			return await IpInfoApi.list(request, env);
 		}
+		if (pathname === bestIpUrl + '/deleteDisableIp') {
+			return await IpInfoApi.deleteDisableIp(env);
+		}
 		if (pathname === bestIpUrl + '/clear') {
 			return await IpInfoApi.clear(env);
 		}
