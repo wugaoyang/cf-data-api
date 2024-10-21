@@ -117,6 +117,12 @@ export default class IpInfoApi {
 		return Result.succeed(JSON.stringify(results));
 	}
 
+	static async clear(env: Env){
+		await env.DB.exec(
+			'DELETE FROM cf_best_ip '
+		)
+		return Result.succeed("删除成功")
+	}
 	/**
 	 * 添加ip信息
 	 * @param request

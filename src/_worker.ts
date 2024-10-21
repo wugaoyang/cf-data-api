@@ -28,6 +28,9 @@ export default {
 		if (pathname === bestIpUrl + '/list') {
 			return await IpInfoApi.list(env);
 		}
+		if (pathname === bestIpUrl + '/clear') {
+			return await IpInfoApi.clear(env);
+		}
 		if (pathname === bestIpUrl + '/getAllReachable') {
 			return await IpInfoApi.getAllReachable(env);
 		}
