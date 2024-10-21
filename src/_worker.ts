@@ -11,14 +11,14 @@ export interface Env {
 	VECTORIZE: Vectorize;
 }
 
-let bestIpUrl = '/api/db/bestIps';
+let bestIpUrl = '/api/db/ip';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		// console.log(request);
 		let url = new URL(request.url);
 		let pathname = url.pathname;
-		if (pathname === bestIpUrl || pathname === bestIpUrl + '/') {
+		if (pathname === bestIpUrl + '/best') {
 			return await IpInfoApi.getBestIps(request, env);
 		}
 
@@ -38,10 +38,10 @@ export default {
 			return await IpInfoApi.update(request, env);
 		}
 
-
 		if (pathname === '/api/index') {
 			return await CFIndexApi.queryIndex(env);
 		}
+
 		if (pathname === '/api/topIps') {
 			return IpInfoApi.getTopIp();
 		}

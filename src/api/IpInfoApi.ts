@@ -4,7 +4,6 @@ import CommonUtil from '../common/CommonUtil';
 import moment from 'moment';
 import QueryData, { PageVO } from '../model/QueryData';
 import IpInfo from '../model/IpInfo';
-import { an } from 'vitest/dist/chunks/reporters.C_zwCd4j';
 
 function getSql(ipArr: string[], ips: string[], querySql: string) {
 	let index = 0;
@@ -74,6 +73,9 @@ export default class IpInfoApi {
 		}
 		if (data.countryCode) {
 			condition += ' and `countryCode` = \'' + data.countryCode + '\'';
+		}
+		if (data.countryCodeIsNull) {
+			condition += ' and (`countryCode` is null  or `countryCode` = \'\')';
 		}
 		if (data.reachable) {
 			if (data.reachable == 1) {

@@ -10,6 +10,7 @@ export default class QueryData {
 	speed2: number | string = '';
 	delay1: number | string = '';
 	delay2: number | string = '';
+	countryCodeIsNull: boolean | string = '';
 	pageVO: PageVO = new PageVO();
 }
 
