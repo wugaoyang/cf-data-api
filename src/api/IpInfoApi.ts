@@ -100,7 +100,7 @@ export default class IpInfoApi {
 	 */
 	static async getAllReachable(env: Env) {
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status in(1) and delay > 0'
+			'SELECT * FROM cf_best_ip WHERE status in(0) and delay > 0'
 		).all();
 		return Result.succeed(JSON.stringify(results));
 	}
