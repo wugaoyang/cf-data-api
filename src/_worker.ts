@@ -1,7 +1,9 @@
 // @ts-ignore
-import CFIndexApi, { sampleVectors } from './api/CFIndexApi';
-import IpInfoApi from './api/IpInfoApi';
+import CFIndexApi, { sampleVectors } from './service/CFIndexService';
+import IpInfoService from './service/IpInfoService';
 import Result from './common/Result';
+import IpInfoRouter from './router/IpInfoRouter';
+import CfIpFavoriteRouter from './router/CfIpFavoriteRouter';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
@@ -11,37 +13,18 @@ export interface Env {
 	VECTORIZE: Vectorize;
 }
 
-let bestIpUrl = '/api/db/ip';
-
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		// console.log(request);
 		let url = new URL(request.url);
 		let pathname = url.pathname;
-		if (pathname === bestIpUrl + '/best') {
-			return await IpInfoApi.getBestIps(request, env);
+		let response = await IpInfoRouter.route(request, env);
+		if (response) {
+			return response;
 		}
-
-		if (pathname === bestIpUrl + '/page') {
-			return await IpInfoApi.page(request, env);
-		}
-		if (pathname === bestIpUrl + '/list') {
-			return await IpInfoApi.list(request, env);
-		}
-		if (pathname === bestIpUrl + '/deleteDisableIp') {
-			return await IpInfoApi.deleteDisableIp(env);
-		}
-		if (pathname === bestIpUrl + '/clear') {
-			return await IpInfoApi.clear(env);
-		}
-		if (pathname === bestIpUrl + '/getAllReachable') {
-			return await IpInfoApi.getAllReachable(env);
-		}
-		if (pathname === bestIpUrl + '/add') {
-			return await IpInfoApi.add(request, env);
-		}
-		if (pathname === bestIpUrl + '/update') {
-			return await IpInfoApi.update(request, env);
+		response = await CfIpFavoriteRouter.route(request, env);
+		if (response) {
+			return response;
 		}
 
 		if (pathname === '/api/index') {
@@ -49,7 +32,7 @@ export default {
 		}
 
 		if (pathname === '/api/topIps') {
-			return IpInfoApi.getTopIp();
+			return IpInfoService.getTopIp();
 		}
 
 		// You only need to insert vectors into your index once
@@ -68,5 +51,3 @@ export default {
 		);
 	}
 } satisfies ExportedHandler<Env>;
-
-

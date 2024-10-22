@@ -1,6 +1,6 @@
 
 
-export default class CFIndexApi {
+export default class CFIndexService {
 	static async  queryIndex(env: any) {
 		const queryVector: Array<number> = [
 			0.13, 0.25, 0.44, 0.53, 0.62, 0.41, 0.59, 0.68, 0.29, 0.82, 0.37, 0.5,

@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS cf_best_ip;
-CREATE TABLE IF NOT EXISTS cf_best_ip (ip TEXT PRIMARY KEY,
+DROP TABLE IF EXISTS cf_ip_info;
+CREATE TABLE IF NOT EXISTS cf_ip_info (ip TEXT PRIMARY KEY,
 									   cityNameCN TEXT ,
 									   cityNameEN TEXT ,
 									   continentCode TEXT,

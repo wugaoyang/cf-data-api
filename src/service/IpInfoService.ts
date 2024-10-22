@@ -4,27 +4,9 @@ import CommonUtil from '../common/CommonUtil';
 import moment from 'moment';
 import QueryData, { PageVO } from '../model/QueryData';
 import IpInfo from '../model/IpInfo';
+import CfIpFavoriteService from './CfIpFavoriteService';
 
-function getSql(ipArr: string[], ips: string[], querySql: string) {
-	let index = 0;
-	ipArr.forEach(value => {
-		let split = value.split('\t');
-		let ip = split[0];
-		if (ip) {
-			ips.push(ip);
-			if (index > 0) {
-				querySql += ',';
-			}
-			querySql += '\'' + ip + '\'';
-		}
-		index++;
-	});
-	querySql += ')';
-	return querySql;
-}
-
-
-export default class IpInfoApi {
+export default class IpInfoService {
 	/**
 	 * 分页查询
 	 * @param request
@@ -84,11 +66,11 @@ export default class IpInfoApi {
 				condition += ' and `delay` <= 0 ';
 			}
 		}
-		let countSql = 'SELECT count(1) total FROM cf_best_ip where 1=1 ' + condition;
+		let countSql = 'SELECT count(1) total FROM cf_ip_info where 1=1 ' + condition;
 		// console.log(countSql);
 		let result = await env.DB.prepare(countSql).all();
 		let total = result.results[0].total;
-		let querySql = 'SELECT * FROM cf_best_ip where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
+		let querySql = 'SELECT * FROM cf_ip_info where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
 		const { results } = await env.DB.prepare(querySql).bind(start, pageSize).all();
 		let queryResult = { total: total, data: results };
 		return Result.succeed(JSON.stringify(queryResult));
@@ -100,7 +82,7 @@ export default class IpInfoApi {
 	 */
 	static async getAllReachable(env: Env) {
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip WHERE status in(0) and delay > 0'
+			'SELECT * FROM cf_ip_info WHERE status in(0) and delay > 0'
 		).all();
 		return Result.succeed(JSON.stringify(results));
 	}
@@ -111,7 +93,7 @@ export default class IpInfoApi {
 	 */
 	static async deleteDisableIp(env: Env) {
 		await env.DB.exec(
-			'delete FROM cf_best_ip WHERE status in(0) or delay <= 0 or speed < 10'
+			'delete FROM cf_ip_info WHERE status in(0) or delay <= 0 or speed < 10'
 		);
 		return Result.succeed('删除成功');
 	}
@@ -128,14 +110,14 @@ export default class IpInfoApi {
 			limitCondition = 'limit ' + limit;
 		}
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_best_ip order by updatedTime desc ' + limitCondition
+			'SELECT * FROM cf_ip_info order by updatedTime desc ' + limitCondition
 		).all();
 		return Result.succeed(JSON.stringify(results));
 	}
 
 	static async clear(env: Env) {
 		await env.DB.exec(
-			'DELETE FROM cf_best_ip '
+			'DELETE FROM cf_ip_info '
 		);
 		return Result.succeed('删除成功');
 	}
@@ -167,7 +149,7 @@ export default class IpInfoApi {
 		// let noCountryCodes = IpInfos.filter(value => !value.countryCode);
 
 
-		let insertSql = 'INSERT INTO cf_best_ip (ip,' +
+		let insertSql = 'INSERT INTO cf_ip_info (ip,' +
 			'cityNameCN,' +
 			'cityNameEN,' +
 			'continentCode,' +
@@ -240,7 +222,7 @@ export default class IpInfoApi {
 			}
 			if (deleteOld && deleteOld === '1') {
 				await env.DB.exec(
-					'DELETE FROM cf_best_ip WHERE  `group` =\'' + group + '\''
+					'DELETE FROM cf_ip_info WHERE  `group` =\'' + group + '\''
 				);
 			}
 			let bestIps = '';
@@ -257,7 +239,7 @@ export default class IpInfoApi {
 
 				let ips: string[] = await this.deleteExist(ipArr, env);
 
-				let insertSql = 'INSERT INTO cf_best_ip (ip, name,`group`,  speed , status, `source`, updatedTime) VALUES';
+				let insertSql = 'INSERT INTO cf_ip_info (ip, name,`group`,  speed , status, `source`, updatedTime) VALUES';
 				let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 				let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
 				ipArr.forEach(value => {
@@ -292,13 +274,13 @@ export default class IpInfoApi {
 		if (ipArr.length <= 0) {
 			return ips;
 		}
-		// let querySql = 'select * from cf_best_ip where ip in(';
+		// let querySql = 'select * from cf_ip_info where ip in(';
 		// querySql = getSql(ipArr, ips, querySql);
 		// @ts-ignore
 		// const { results } = await env.DB.prepare(querySql).all();
 		// console.log('查询结果：', querySql, '\n', results);
 		// if (results.length > 0) {
-		let deleteSql = 'DELETE FROM cf_best_ip WHERE  `ip` in (';
+		let deleteSql = 'DELETE FROM cf_ip_info WHERE  `ip` in (';
 		deleteSql = getSql(ipArr, ips, deleteSql);
 		await env.DB.exec(
 			deleteSql
@@ -318,7 +300,7 @@ export default class IpInfoApi {
 																							status,
 																							updatedTime,
 																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY speed DESC, delay ASC) AS rn
-																			 FROM cf_best_ip
+																			 FROM cf_ip_info
 																			 where status = 1)
 								SELECT ip,
 											 name,
@@ -376,7 +358,7 @@ export default class IpInfoApi {
 		if (ipArr.length <= 0) {
 			return ips;
 		}
-		let querySql = 'select * from cf_best_ip where ip in(';
+		let querySql = 'select * from cf_ip_info where ip in(';
 		querySql = getSql(ipArr, [], querySql);
 		const { results } = await env.DB.prepare(querySql).all();
 		// console.log('查询结果：', querySql, '\n', results);
@@ -432,7 +414,9 @@ export default class IpInfoApi {
 					// @ts-ignore
 					let group = showGroup ? value.group : '';
 					let speed: unknown = value.speed;
+					// @ts-ignore
 					speed = showSpeed && speed ? speed.toFixed(2) + 'MB/s' : '';
+					// @ts-ignore
 					res += value.ip + '#' + value.countryCode + ' ' + group + value.name + ' ' + speed + '\n';
 				});
 				// await this.doAdd(ipInfos, env);
@@ -441,5 +425,33 @@ export default class IpInfoApi {
 		return res;
 	}
 
+	static async syncToFavorite(env: Env) {
+		let sql = 'select * from cf_ip_info where status = 1';
+		let { results } = await env.DB.prepare(sql).all();
+		// console.log(results);
+		if (!results || results.length == 0) {
+			return Result.succeed('同步成功 : 0');
+		}
+		// @ts-ignore
+		await CfIpFavoriteService.doAdd(results, env);
+		return Result.succeed('同步成功: ' + results.length);
+	}
 }
 
+function getSql(ipArr: string[], ips: string[], querySql: string) {
+	let index = 0;
+	ipArr.forEach(value => {
+		let split = value.split('\t');
+		let ip = split[0];
+		if (ip) {
+			ips.push(ip);
+			if (index > 0) {
+				querySql += ',';
+			}
+			querySql += '\'' + ip + '\'';
+		}
+		index++;
+	});
+	querySql += ')';
+	return querySql;
+}
