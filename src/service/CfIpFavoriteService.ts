@@ -300,7 +300,7 @@ export default class CfIpFavoriteService {
 																							source,
 																							status,
 																							updatedTime,
-																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY speed DESC, delay ASC) AS rn
+																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY updatedTime desc, speed DESC, delay ASC) AS rn
 																			 FROM cf_ip_favorite
 																			 where status = 1)
 								SELECT ip,
