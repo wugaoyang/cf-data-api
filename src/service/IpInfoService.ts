@@ -432,6 +432,9 @@ export default class IpInfoService {
 		if (!results || results.length == 0) {
 			return Result.succeed('同步成功 : 0');
 		}
+		if (results.length > 10) {
+			// await CfIpFavoriteService.clear(env);
+		}
 		// @ts-ignore
 		await CfIpFavoriteService.doAdd(results, env);
 		return Result.succeed('同步成功: ' + results.length);
