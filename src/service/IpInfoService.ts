@@ -312,7 +312,7 @@ export default class IpInfoService {
 											 status,
 											 updatedTime
 								FROM RankedRecords
-								WHERE rn <= 5;
+								WHERE rn <= 10;
 		`;
 		let data = await this.getIpInfoVO(sql2, request, env);
 		return Result.succeed(data);
