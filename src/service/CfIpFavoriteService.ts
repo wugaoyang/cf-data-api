@@ -319,6 +319,7 @@ export default class CfIpFavoriteService {
 		return Result.succeed(data);
 	}
 
+
 	static async getTopIp() {
 		let url = 'https://ip.164746.xyz/ipTop10.html';
 		let topIps = '';
