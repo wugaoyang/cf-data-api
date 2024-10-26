@@ -16,3 +16,5 @@ CREATE TABLE IF NOT EXISTS cf_ip_info (ip TEXT PRIMARY KEY,
 									   status integer,
 									   updatedTime TEXT
                                       );
+
+
