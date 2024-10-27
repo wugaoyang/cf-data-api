@@ -55,6 +55,35 @@ export default class CommonUtil {
 		}
 		return result;
 	}
+	static async getCountryCodeBatch2(ips: string[]) {
+		// console.log('ip', ips);
+		let result = new Map();
+		if (!ips) {
+			return result;
+		}
+		let api = `https://ipinfo.io/batch?token=13875b602ed898`;
+		await fetch(api, {
+			method: 'POST',
+			// @ts-ignore
+			body: JSON.stringify(ips),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				if (res.ok) {
+					return res.json();
+				}
+				return [];
+			})
+			.then(data => {
+				// @ts-ignore
+				result =  data;
+			}).catch(reason => {
+				console.error(reason);
+			});
+		return result;
+	}
 
 	static dateFormat(date : Date){
 

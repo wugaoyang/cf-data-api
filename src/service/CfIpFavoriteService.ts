@@ -1,6 +1,6 @@
 import { Env } from '../_worker';
 import Result from '../common/Result';
-import CommonUtil from '../common/CommonUtil';
+import CommonUtil from '../util/CommonUtil';
 import moment from 'moment';
 import QueryData, { PageVO } from '../model/QueryData';
 import IpInfo from '../model/IpInfo';
@@ -331,11 +331,16 @@ export default class CfIpFavoriteService {
 		}).then(async data => {
 
 			let ips = data.split(',');
-			let countryCodes = await CommonUtil.getCountryCodeBatch(ips);
+			let countryCodes = await CommonUtil.getCountryCodeBatch2(ips);
 			// console.log('countryCodes', countryCodes);
 			for (const ip of ips) {
 				// @ts-ignore
-				topIps += `${ip}#${countryCodes.get(ip)} 自动优选\n`;
+				let info = countryCodes.get(ip);
+				let countryCode = "";
+				if(info){
+					countryCode = info.country;
+				}
+				topIps += `${ip}#${countryCode} 自动优选\n`;
 			}
 		});
 		return Result.succeed(topIps);
