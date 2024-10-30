@@ -5,9 +5,9 @@ import moment from 'moment';
 import QueryData, { PageVO } from '../model/QueryData';
 import IpInfo from '../model/IpInfo';
 import CfIpFavoriteService from './CfIpFavoriteService';
-import IpCountryService from './IpCountryService';
+import IpCountry from '../model/IpCountry';
 
-export default class IpInfoService {
+export default class IpCountryService {
 	/**
 	 * 分页查询
 	 * @param request
@@ -67,11 +67,11 @@ export default class IpInfoService {
 				condition += ' and `delay` <= 0 ';
 			}
 		}
-		let countSql = 'SELECT count(1) total FROM cf_ip_info where 1=1 ' + condition;
+		let countSql = 'SELECT count(1) total FROM ip_country where 1=1 ' + condition;
 		// console.log(countSql);
 		let result = await env.DB.prepare(countSql).all();
 		let total = result.results[0].total;
-		let querySql = 'SELECT * FROM cf_ip_info where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
+		let querySql = 'SELECT * FROM ip_country where 1=1 ' + condition + ' order by updatedTime desc limit ?,?';
 		const { results } = await env.DB.prepare(querySql).bind(start, pageSize).all();
 		let queryResult = { total: total, data: results };
 		return Result.succeed(JSON.stringify(queryResult));
@@ -81,11 +81,47 @@ export default class IpInfoService {
 	 * 查询列表
 	 * @param env
 	 */
-	static async getAllReachable(env: Env) {
+	static async getByIp(request: Request, env: Env) {
+		let url = new URL(request.url);
+		let ip = url.searchParams.get('ip') || '';
+		const results = await this.getIpCountry(env, ip);
+		let data = '';
+		if (results.length > 0) {
+			data = JSON.stringify(results[0]);
+		}
+		return Result.succeed(data);
+	}
+
+	static async getIpCountry(env: Env, ip: string) {
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_ip_info WHERE status in(0) and delay > 0 and speed > -1'
+			`SELECT *
+			 FROM ip_country
+			 WHERE '${ip}' BETWEEN start_ip AND end_ip`
 		).all();
-		return Result.succeed(JSON.stringify(results));
+		return results;
+	}
+
+	/**
+	 * 查询列表
+	 * @param env
+	 */
+	static async getByIps(request: Request, env: Env) {
+		const ips: string[] = await request.json();
+		if (!ips) {
+			return Result.succeed('[]');
+		}
+		let resultMap = new Map();
+		for (const ip of ips) {
+			const { results } = await env.DB.prepare(
+				`SELECT *
+				 FROM ip_country
+				 WHERE '${ip}' BETWEEN start_ip AND end_ip`
+			).all();
+			if (results.length > 0) {
+				resultMap.set(ip, results[0]);
+			}
+		}
+		return Result.succeed(JSON.stringify(resultMap));
 	}
 
 	/**
@@ -93,10 +129,8 @@ export default class IpInfoService {
 	 * @param env
 	 */
 	static async deleteDisableIp(env: Env) {
-		let date = CommonUtil.dateFormat(new Date());
-		let sql = 'delete FROM cf_ip_info WHERE status in(0) or delay <= 0 or speed < 10';
-		sql = 'UPDATE cf_ip_info SET \`STATUS\`  = -1, updatedTime = \'' + date + '\' WHERE \`status\` in (0, -1) or \`delay\` <= 0 or speed < 10';
-		// console.log(sql);
+		let sql = 'delete FROM ip_country WHERE status in(0) or delay <= 0 or speed < 10';
+		sql = 'UPDATE ip_country SET STATUS = -1 WHERE status in(0) or delay <= 0 or speed < 10';
 		await env.DB.exec(
 			sql
 		);
@@ -115,14 +149,14 @@ export default class IpInfoService {
 			limitCondition = 'limit ' + limit;
 		}
 		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_ip_info order by updatedTime desc ' + limitCondition
+			'SELECT * FROM ip_country order by updatedTime desc ' + limitCondition
 		).all();
 		return Result.succeed(JSON.stringify(results));
 	}
 
 	static async clear(env: Env) {
 		await env.DB.exec(
-			'DELETE FROM cf_ip_info '
+			'DELETE FROM ip_country '
 		);
 		return Result.succeed('删除成功');
 	}
@@ -139,83 +173,52 @@ export default class IpInfoService {
 		if (request.method !== 'POST') {
 			return Result.failed('不支持的请求方法：' + request.method);
 		}
-		let IpInfos: IpInfo[] = await request.json();
+		let IpInfos: IpCountry[] = await request.json();
 		if (!IpInfos) {
 			return Result.failed('ip为空');
 		}
-		// console.log('添加的ip', IpInfos);
 		return await this.doAdd(IpInfos, env);
 	}
 
-	static async doAdd(IpInfos: IpInfo[], env: Env) {
-		let ips: string[] = await this.checkExist(IpInfos, env);
+	static async doAdd(IpInfos: IpCountry[], env: Env) {
 		if (IpInfos.length <= 0) {
 			return Result.failed('ip已存在:' + JSON.stringify(IpInfos));
 		}
-		// console.log('检查后的ips', IpInfos);
 		// let noCountryCodes = IpInfos.filter(value => !value.countryCode);
 
 
-		let insertSql = 'INSERT INTO cf_ip_info (ip,' +
-			'cityNameCN,' +
-			'cityNameEN,' +
-			'continentCode,' +
-			'countryCode,' +
-			'countryNameEN,' +
-			'countryNameCN,' +
-			'latitude,' +
-			'longitude, name,`group`, delay, speed , `status`, `source`, updatedTime) VALUES';
+		let insertSql = 'INSERT INTO ip_country (start_ip,' +
+			'end_ip,' +
+			'country,' +
+			'country_name,' +
+			'continent,' +
+			'continent_name,' +
+			'updatedTime) VALUES';
 		// console.log(insertSql);
 		// let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 		let updatedTime = moment(new Date(new Date().getTime() + 8 * 60 * 60 * 100)).format('YYYY-MM-DD HH:mm:ss');
 		let index = 0;
-		for (const ipInfo of IpInfos) {
-			let ip = ipInfo.ip || '';
-			if (ip) {
-				updatedTime = ipInfo.updatedTime || updatedTime;
-				if (index > 0) {
-					insertSql += ',';
-				}
-
-				let cityNameCn = ipInfo.cityNameCN || '';
-				let cityNameEn = ipInfo.cityNameEN || '';
-				let continentCode = ipInfo.continentCode || '';
-				let countryCode: unknown = ipInfo.countryCode || '';
-				let countryNameEN: unknown = ipInfo.countryNameEN || '';
-				let countryNameCN = ipInfo.countryNameCN || '';
-				let latitude = ipInfo.latitude || '';
-				let longitude = ipInfo.longitude || '';
-				let delay = ipInfo.delay || 0;
-				let speed = ipInfo.speed || 0;
-				let status = ipInfo.status || 0;
-				let name = '自选官方优选';
-				let group = 'CF';
-
-				// const results = await IpCountryService.getIpCountry(env, ip);
-				// if (results.length > 0) {
-				// 	countryCode = results[0].country || '';
-				// 	countryNameEN = results[0].country_name || '';
-				// }
-				insertSql += '( \'' + ip + '\',' +
-					'\'' + cityNameCn + '\',' +
-					'\'' + cityNameEn + '\',' +
-					'\'' + continentCode + '\',' +
-					'\'' + countryCode + '\',' +
-					'\'' + countryNameEN + '\',' +
-					'\'' + countryNameCN + '\',' +
-					'\'' + latitude + '\',' +
-					'\'' + longitude + '\',' +
-					'\'' + name + '\',' +
-					'\'' + group + '\',' +
-					+delay + ', ' +
-					'\'' + speed + '\', ' +
-					status + ', ' +
-					'1, ' +
-					'\'' + updatedTime + '\')';
-				index++;
+		IpInfos.forEach(ipInfo => {
+			let start_ip = ipInfo.start_ip || '';
+			updatedTime = ipInfo.updatedTime || updatedTime;
+			if (index > 0) {
+				insertSql += ',';
 			}
-		}
-		console.log(insertSql);
+			let end_ip = ipInfo.end_ip || '';
+			let country = ipInfo.country || '';
+			let country_name = ipInfo.country_name || '';
+			let continent = ipInfo.continent || '';
+			let continent_name = ipInfo.continent_name || '';
+			insertSql += '( \'' + start_ip + '\',' +
+				'\'' + end_ip + '\',' +
+				'\'' + country + '\',' +
+				'\'' + country_name + '\',' +
+				'\'' + continent + '\',' +
+				'\'' + continent_name + '\',' +
+				'\'' + updatedTime + '\')';
+			index++;
+		});
+		// console.log(insertSql);
 		await env.DB.exec(insertSql);
 		return Result.succeed('添加成功');
 	}
@@ -236,7 +239,7 @@ export default class IpInfoService {
 			}
 			if (deleteOld && deleteOld === '1') {
 				await env.DB.exec(
-					'DELETE FROM cf_ip_info WHERE  `group` =\'' + group + '\''
+					'DELETE FROM ip_country WHERE  `group` =\'' + group + '\''
 				);
 			}
 			let bestIps = '';
@@ -253,7 +256,7 @@ export default class IpInfoService {
 
 				let ips: string[] = await this.deleteExist(ipArr, env);
 
-				let insertSql = 'INSERT INTO cf_ip_info (ip, name,`group`,  speed , status, `source`, updatedTime) VALUES';
+				let insertSql = 'INSERT INTO ip_country (ip, name,`group`,  speed , status, `source`, updatedTime) VALUES';
 				let countryCodeMap: Map<string, string> = await CommonUtil.getCountryCodeBatch(ips);
 				let updatedTime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
 				ipArr.forEach(value => {
@@ -288,13 +291,13 @@ export default class IpInfoService {
 		if (ipArr.length <= 0) {
 			return ips;
 		}
-		// let querySql = 'select * from cf_ip_info where ip in(';
+		// let querySql = 'select * from ip_country where ip in(';
 		// querySql = getSql(ipArr, ips, querySql);
 		// @ts-ignore
 		// const { results } = await env.DB.prepare(querySql).all();
 		// console.log('查询结果：', querySql, '\n', results);
 		// if (results.length > 0) {
-		let deleteSql = 'DELETE FROM cf_ip_info WHERE  `ip` in (';
+		let deleteSql = 'DELETE FROM ip_country WHERE  `ip` in (';
 		deleteSql = getSql(ipArr, ips, deleteSql);
 		await env.DB.exec(
 			deleteSql
@@ -314,7 +317,7 @@ export default class IpInfoService {
 																							status,
 																							updatedTime,
 																							ROW_NUMBER() OVER (PARTITION BY countryCode ORDER BY speed DESC, delay ASC) AS rn
-																			 FROM cf_ip_info
+																			 FROM ip_country
 																			 where status = 1)
 								SELECT ip,
 											 name,
@@ -343,15 +346,14 @@ export default class IpInfoService {
 		}).then(async data => {
 
 			let ips = data.split(',');
-			let countryCodes = await CommonUtil.getCountryCodeBatch(ips);
+			let countryCodes = await CommonUtil.getCountryCodeBatch2(ips);
 			console.log('countryCodes', countryCodes);
 			for (const ip of ips) {
 				// @ts-ignore
 				let info = countryCodes[ip];
 				let countryCode = '';
 				if (info) {
-					// countryCode = info.country;
-					countryCode = info || '';
+					countryCode = info.country;
 				}
 				topIps += `${ip}#${countryCode} 自动优选\n`;
 			}
@@ -378,7 +380,7 @@ export default class IpInfoService {
 		if (ipArr.length <= 0) {
 			return ips;
 		}
-		let querySql = 'select * from cf_ip_info where ip in(';
+		let querySql = 'select * from ip_country where ip in(';
 		querySql = getSql(ipArr, [], querySql);
 		const { results } = await env.DB.prepare(querySql).all();
 		// console.log('查询结果：', querySql, '\n', results);
@@ -386,11 +388,10 @@ export default class IpInfoService {
 			results.forEach(value => {
 				let ip: string = <string>value.ip;
 				let newVar = ipMap.get(ip);
-				if (newVar.status === undefined || newVar.status === '') {
-					console.log('替换status', newVar.status === undefined || newVar.status === '', newVar.status, value.status);
+				if (!newVar.status) {
 					newVar.status = value.status;
 				}
-				if (newVar.speed === undefined || newVar.speed === '') {
+				if (!newVar.speed) {
 					newVar.speed = value.speed;
 				}
 
@@ -447,7 +448,7 @@ export default class IpInfoService {
 	}
 
 	static async syncToFavorite(env: Env) {
-		let sql = 'select * from cf_ip_info where status = 1';
+		let sql = 'select * from ip_country where status = 1';
 		let { results } = await env.DB.prepare(sql).all();
 		// console.log(results);
 		if (!results || results.length == 0) {
@@ -462,19 +463,6 @@ export default class IpInfoService {
 		// @ts-ignore
 		await CfIpFavoriteService.doAdd(results, env);
 		return Result.succeed('同步成功: ' + results.length);
-	}
-
-	static async allAvailable(request: Request, env: Env) {
-		let url = new URL(request.url);
-		let limit = url.searchParams.get('limit');
-		let limitCondition = '';
-		if (limit) {
-			limitCondition = 'limit ' + limit;
-		}
-		const { results } = await env.DB.prepare(
-			'SELECT * FROM cf_ip_info where status = 1 order by updatedTime desc ' + limitCondition
-		).all();
-		return Result.succeed(JSON.stringify(results));
 	}
 }
 

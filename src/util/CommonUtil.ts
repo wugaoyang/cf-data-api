@@ -98,6 +98,6 @@ export default class CommonUtil {
 // 格式: YYYY-MM-DD HH:MM:SS
 		const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 		console.log(formattedTime);
-
+		return formattedTime;
 	}
 }

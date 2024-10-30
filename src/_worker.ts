@@ -4,6 +4,7 @@ import IpInfoService from './service/IpInfoService';
 import Result from './common/Result';
 import IpInfoRouter from './router/IpInfoRouter';
 import CfIpFavoriteRouter from './router/CfIpFavoriteRouter';
+import IpCountryRouter from './router/IpCountryRouter';
 
 export interface Env {
 	// If you set another name in wrangler.toml as the value for 'binding',
@@ -23,6 +24,11 @@ export default {
 			return response;
 		}
 		response = await CfIpFavoriteRouter.route(request, env);
+		if (response) {
+			return response;
+		}
+
+		response = await IpCountryRouter.route(request, env);
 		if (response) {
 			return response;
 		}

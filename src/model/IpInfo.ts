@@ -1,8 +1,8 @@
 export default class IpInfo {
 
 	ip: string = '';
-	cityNameCn: string = '';
-	cityNameEn: string = '';
+	cityNameCN: string = '';
+	cityNameEN: string = '';
 	continentCode: string = '';
 	countryCode: string = '';
 	countryNameEN: string = '';

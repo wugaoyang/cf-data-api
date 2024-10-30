@@ -18,6 +18,9 @@ export default class IpInfoRouter{
 		if (pathname === baseUrl + '/list') {
 			return await IpInfoService.list(request, env);
 		}
+		if (pathname === baseUrl + '/allAvailable') {
+			return await IpInfoService.allAvailable(request, env);
+		}
 		if (pathname === baseUrl + '/deleteDisableIp') {
 			return await IpInfoService.deleteDisableIp(env);
 		}
