@@ -338,6 +338,9 @@ export default class IpInfoService {
 		return Result.succeed(topIps);
 	}
 
+	static async getTopDomains() {
+		return await env.KV.get('TOP-DOMAIN', 'text') || '';
+	}
 	/**
 	 * 检查是否存在
 	 * @param ipArr
@@ -438,6 +441,7 @@ export default class IpInfoService {
 		await CfIpFavoriteService.doAdd(results, env);
 		return Result.succeed('同步成功: ' + results.length);
 	}
+
 }
 
 function getSql(ipArr: string[], ips: string[], querySql: string) {
