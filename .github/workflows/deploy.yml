@@ -10,26 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      # 安装项目依赖
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
-      # 安装 wrangler（可选）
-      - name: Install Wrangler
-        run: npm install -g wrangler
-
-      # 部署
-      - name: Publish Worker
+      - name: Deploy Worker
+        run: npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: wrangler deploy --config wrangler.toml
