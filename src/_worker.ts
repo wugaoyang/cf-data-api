@@ -11,6 +11,7 @@ export interface Env {
 	DB: D1Database;
 	GEO_BUCKET: R2Bucket;
 	VECTORIZE: Vectorize;
+	KV: KVNamespace;
 }
 
 export default {
