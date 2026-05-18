@@ -339,7 +339,7 @@ export default class IpInfoService {
 	}
 
 	static async getTopDomains(env: Env) {
-		return await Result.succeed(env.KV.get('TOP-DOMAIN', 'text') || '');
+		return Result.succeed(env.KV.get('TOP-DOMAIN', 'text') || '');
 	}
 	/**
 	 * 检查是否存在
