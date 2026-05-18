@@ -37,7 +37,7 @@ export default {
 		}
 
 		if (pathname === '/api/topDomains') {
-			return IpInfoService.getTopDomains();
+			return IpInfoService.getTopDomains(env);
 		}
 		// You only need to insert vectors into your index once
 		if (pathname.startsWith('/api/index/insert')) {

@@ -338,8 +338,8 @@ export default class IpInfoService {
 		return Result.succeed(topIps);
 	}
 
-	static async getTopDomains() {
-		return await env.KV.get('TOP-DOMAIN', 'text') || '';
+	static async getTopDomains(env: Env) {
+		return await Result.succeed(env.KV.get('TOP-DOMAIN', 'text') || '');
 	}
 	/**
 	 * 检查是否存在
