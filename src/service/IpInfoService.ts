@@ -329,11 +329,10 @@ export default class IpInfoService {
 		}).then(async data => {
 
 			let ips = data.split(',');
-			let countryCodes = await CommonUtil.getCountryCodeBatch(ips);
 			// console.log('countryCodes', countryCodes);
 			for (const ip of ips) {
 				// @ts-ignore
-				topIps += `${ip}#${countryCodes.get(ip)} 自动优选\n`;
+				topIps += `${ip.trim()}# 自动优选\n`;
 			}
 		});
 		return Result.succeed(topIps);
