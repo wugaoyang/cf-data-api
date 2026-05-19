@@ -289,6 +289,21 @@ export default class IpInfoService {
 		return ips;
 	}
 
+	/**
+	 * 删除IP
+	 * @param request
+	 * @param env
+	 */
+	static async deleteIp(request: Request, env: Env) {
+		const url = new URL(request.url);
+		let ip: string | null = url.searchParams.get('ip')
+		let deleteSql = 'DELETE FROM cf_ip_info WHERE  `ip` = ${ip}';
+		await env.DB.exec(
+			deleteSql
+		);
+		return Result.succeed('删除成功');
+	}
+
 	static async getBestIps(request: Request, env: Env) {
 		let sql2 = `WITH RankedRecords AS (SELECT ip,
 																							name,

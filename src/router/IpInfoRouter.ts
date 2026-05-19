@@ -24,6 +24,9 @@ export default class IpInfoRouter{
 		if (pathname === baseUrl + '/clear') {
 			return await IpInfoService.clear(env);
 		}
+		if (pathname === baseUrl + '/delete') {
+			return await IpInfoService.deleteIp(request, env);
+		}
 		if (pathname === baseUrl + '/getAllReachable') {
 			return await IpInfoService.getAllReachable(env);
 		}
