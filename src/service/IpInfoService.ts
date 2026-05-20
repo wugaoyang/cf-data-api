@@ -297,7 +297,7 @@ export default class IpInfoService {
 	static async deleteIp(request: Request, env: Env) {
 		const url = new URL(request.url);
 		let ip: string | null = url.searchParams.get('ip')
-		let deleteSql = 'DELETE FROM cf_ip_info WHERE  `ip` = ${ip}';
+		let deleteSql = 'DELETE FROM cf_ip_info WHERE  `ip` = \'${ip}\'';
 		await env.DB.exec(
 			deleteSql
 		);
